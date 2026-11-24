@@ -1,0 +1,8 @@
+=== VaultGuard SDMS Storage Exposure Inspection ===
+Private Document UUID: af61ae04-fee5-426d-8f9b-91aab41f8bd6
+Opaque Blob Filename:  storage/vault_blobs/605a9172-107d-463e-b825-0693b9408efd.enc
+Blob Size (bytes):     594
+Magic Header:          b'VGSD1'
+Nonce (12 bytes hex):  479f1b3c86f9c3423614e8e6
+Ciphertext+Tag (head): 13873acd23fdbb2c3a34cdab7f295c895143dbd571a828550146ca58ad6ccc84
+Plaintext leaked?:     False

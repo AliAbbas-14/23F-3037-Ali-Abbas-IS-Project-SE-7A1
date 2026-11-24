@@ -1,0 +1,21 @@
+# Virtual environments & Python caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Local secrets & runtime storage (never commit live DBs, keys, or encrypted blobs)
+.env
+.env.local
+storage/db/*.db
+storage/db/*.db-*
+storage/vault_blobs/*.enc
+storage/audit/chain_head.json
+storage/audit/.audit_hmac_key
+
+# Build / submission archives & tool logs
+*.zip
+*.log
+tmp_test_storage/

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - VaultGuard SDMS{% endblock %}
+{% block content %}
+<div style="max-width:640px;margin:3rem auto;">
+  <div class="card" style="border-color:rgba(248, 113, 113, 0.55);background:rgba(30, 14, 22, 0.88);">
+    <span class="badge badge-alert">HTTP {{ status_code }}</span>
+    <h1 style="margin:0.7rem 0 0.45rem;color:#fecaca;font-size:1.6rem;">{{ title }}</h1>
+    <p style="font-size:1rem;">{{ message }}</p>
+    {% if doc_id %}
+      <p class="mono" style="color:var(--muted);padding:0.65rem 0.85rem;background:rgba(0,0,0,0.28);border-radius:8px;border:1px solid var(--border);">
+        Target Document Identifier: {{ doc_id }}
+      </p>
+    {% endif %}
+    <p style="font-size:0.86rem;color:var(--muted);margin-bottom:1.2rem;">
+      This security event has been committed to the tamper-evident SHA-256 + HMAC-SHA256 audit log.
+    </p>
+    <a class="btn" href="/dashboard">Return to Encrypted Vault</a>
+  </div>
+</div>
+{% endblock %}

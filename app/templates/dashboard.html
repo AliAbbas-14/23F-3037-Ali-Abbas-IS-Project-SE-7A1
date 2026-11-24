@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Vault Dashboard - VaultGuard SDMS{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div>
+    <h1>Encrypted Document Vault</h1>
+    <p>Every file listed below is sealed with AES-256-GCM + Ed25519 and wrapped exclusively for your X25519 identity.</p>
+  </div>
+  <a class="btn btn-secondary btn-sm" href="/profile">View Key Fingerprints &amp; Sessions</a>
+</div>
+
+{% if flash_msg %}
+  <div class="alert alert-success">{{ flash_msg }}</div>
+{% endif %}
+{% if flash_err %}
+  <div class="alert alert-danger">{{ flash_err }}</div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat-box">
+    <div class="stat-top">
+      <div class="stat-label">Accessible Documents</div>
+      <span class="badge badge-owner">ACL Active</span>
+    </div>
+    <div class="stat-value">{{ documents | length }}</div>
+    <div class="stat-sub">Non-revoked &amp; unexpired grants</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-top">
+      <div class="stat-label">Envelope Cipher</div>
+      <span class="badge badge-ok">AEAD</span>
+    </div>
+    <div class="stat-value" style="font-size:1.25rem;">AES-256-GCM</div>
+    <div class="stat-sub">Unique 256-bit DEK per document</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-top">
+      <div class="stat-label">Key Wrap &amp; Signing</div>
+      <span class="badge badge-ok">Asymmetric</span>
+    </div>
+    <div class="stat-value" style="font-size:1.25rem;">X25519 + Ed25519</div>
+    <div class="stat-sub">HKDF-SHA256 bound to doc &amp; user</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-top">
+      <div class="stat-label">Upload Policy</div>
+      <span class="badge badge-viewer">Enforced</span>
+    </div>
+    <div class="stat-value">{{ max_upload_mb }} MB</div>
+    <div class="stat-sub">Sanitized names &bull; Opaque UUID blobs</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>My Accessible Vault Items</h2>
+        <p style="color:var(--muted);font-size:0.84rem;margin:0;">Filter by title, owner, or permission level.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input id="vault-search" class="search-box" type="text" placeholder="Search documents by title, filename, or owner...">
+      <div class="pill-group">
+        <button type="button" class="filter-pill active" data-filter-target="vault-table" data-filter-val="all">All</button>
+        <button type="button" class="filter-pill" data-filter-target="vault-table" data-filter-val="owner">Owner</button>
+        <button type="button" class="filter-pill" data-filter-target="vault-table" data-filter-val="editor">Editor</button>
+        <button type="button" class="filter-pill" data-filter-target="vault-table" data-filter-val="viewer">Viewer</button>
+      </div>
+    </div>
+
+    {% if documents %}
+      <table id="vault-table">
+        <thead>
+          <tr>
+            <th>Document &amp; Integrity Hash</th>
+            <th>Owner</th>
+            <th>Role</th>
+            <th>Ver</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in documents %}
+          <tr data-role="{{ d.my_role }}">
+            <td>
+              <strong>{{ d.title }}</strong><br>
+              <span class="mono" style="color:var(--muted);">{{ d.original_filename }} &bull; {{ d.size_bytes }} B &bull; sha256:{{ d.plaintext_sha256[:10] }}...</span>
+            </td>
+            <td>{{ d.owner_username }}</td>
+            <td><span class="badge badge-{{ d.my_role }}">{{ d.my_role }}</span></td>
+            <td><span class="badge badge-ok">v{{ d.current_version }}</span></td>
+            <td>
+              <div style="display:flex;gap:0.4rem;">
+                <a class="btn btn-sm" href="/documents/{{ d.id }}">Open</a>
+                <a class="btn btn-secondary btn-sm" href="/documents/{{ d.id }}/download">Get</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="padding:2rem 1rem;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:10px;">
+        Your vault is empty. Upload a confidential file on the right to encrypt and sign it.
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Encrypt &amp; Upload Document</h2>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:0;">
+      Files are encrypted in memory before persistence using a fresh 256-bit DEK and signed with your Ed25519 key.
+    </p>
+    <form method="post" action="/documents/upload" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+      <div class="form-group">
+        <label for="title">Document Title</label>
+        <input id="title" name="title" type="text" placeholder="e.g., Q4 Architecture Specification">
+      </div>
+      <div class="form-group">
+        <label for="file">Confidential File (max {{ max_upload_mb }} MB)</label>
+        <div id="upload-dropzone" class="dropzone">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div id="dropzone-filename" class="dropzone-title">Drag &amp; drop a file here or click to browse</div>
+          <div class="dropzone-sub">Protected immediately via AES-256-GCM + AAD</div>
+          <input id="file" name="file" type="file" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-emerald" style="width:100%;">Encrypt, Sign &amp; Store in Vault</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

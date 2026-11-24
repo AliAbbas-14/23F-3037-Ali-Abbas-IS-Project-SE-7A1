@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Sign In - VaultGuard SDMS{% endblock %}
+{% block content %}
+<div class="auth-layout">
+  <section class="auth-showcase">
+    <div>
+      <span class="badge badge-ok">CS3002 Defense-in-Depth</span>
+      <h1 style="font-size:1.9rem;margin:0.8rem 0 0.5rem;line-height:1.2;">
+        Cryptographically Enforced Document Confidentiality
+      </h1>
+      <p style="color:var(--muted);font-size:0.94rem;margin:0;">
+        VaultGuard protects sensitive documents against storage theft, IDOR probing, privilege misuse, and audit tampering using audited PyCA cryptography and Argon2id primitives.
+      </p>
+      <div class="pillar-list">
+        <div class="pillar-item">
+          <span class="pillar-icon">1</span>
+          <div>
+            <strong>Envelope Encryption at Rest</strong>
+            <div style="font-size:0.82rem;color:var(--muted);">Unique 256-bit AES-GCM DEK per document + Ed25519 manifest signature in isolated blob files.</div>
+          </div>
+        </div>
+        <div class="pillar-item">
+          <span class="pillar-icon">2</span>
+          <div>
+            <strong>Zero Admin Master Backdoor</strong>
+            <div style="font-size:0.82rem;color:var(--muted);">Your X25519 &amp; Ed25519 keys stay locked under your Argon2id password-derived KEK.</div>
+          </div>
+        </div>
+        <div class="pillar-item">
+          <span class="pillar-icon">3</span>
+          <div>
+            <strong>Instant Revocation &amp; DEK Rotation</strong>
+            <div style="font-size:0.82rem;color:var(--muted);">Revoking collaborators purges their wrapped DEK and rotates ciphertext to a new version.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:var(--muted);margin-top:1.4rem;">
+      Brute-force protection active: 5 failed attempts trigger 300s lockout &amp; audit alert.
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:center;">
+    <h2>Sign In &amp; Unlock Session Vault</h2>
+    <p style="color:var(--muted);font-size:0.88rem;margin-top:0;">
+      Your private key bundle unlocks in volatile session memory only and is wiped on sign-out.
+    </p>
+    {% if info %}
+      <div class="alert alert-success">{{ info }}</div>
+    {% endif %}
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/login">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" value="{{ username }}" required autocomplete="username" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter password">
+          <button type="button" class="pw-toggle" data-pw-toggle="password">Show</button>
+        </div>
+      </div>
+      <button type="submit" class="btn" style="width:100%;">Unlock Vault &amp; Sign In</button>
+    </form>
+    <p style="margin-top:1.15rem;font-size:0.86rem;color:var(--muted);text-align:center;">
+      Need an account? <a href="/register">Create Identity</a> &bull;
+      Forgot password? <a href="/recover">Recover Keys</a>
+    </p>
+  </section>
+</div>
+{% endblock %}

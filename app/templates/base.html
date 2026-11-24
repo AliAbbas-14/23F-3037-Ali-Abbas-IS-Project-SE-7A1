@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}VaultGuard SDMS{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% if session %}/dashboard{% else %}/login{% endif %}">
+      <span class="brand-shield" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </span>
+      <span>
+        VaultGuard SDMS
+        <span class="brand-sub">Zero-Trust Document Vault</span>
+      </span>
+    </a>
+    <nav class="nav-right">
+      {% set cur = request.url.path %}
+      {% if session %}
+        <a class="nav-link {% if cur.startswith('/dashboard') or cur.startswith('/documents') %}active{% endif %}" href="/dashboard">
+          My Vault
+        </a>
+        <a class="nav-link {% if cur == '/profile' %}active{% endif %}" href="/profile">
+          Identity &amp; Keys
+        </a>
+        {% if session.system_role == 'auditor_admin' %}
+          <a class="nav-link {% if cur.startswith('/admin') %}active{% endif %}" href="/admin">
+            Security Audit Console
+          </a>
+        {% endif %}
+        <span class="user-pill">
+          <span class="user-avatar">{{ session.username[:2] }}</span>
+          <span>{{ session.username }}</span>
+          <span class="badge {% if session.system_role == 'auditor_admin' %}badge-admin{% else %}badge-viewer{% endif %}">
+            {{ session.system_role }}
+          </span>
+        </span>
+        <form action="/logout" method="post" style="display:inline;margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+          <button type="submit" class="btn btn-secondary btn-sm">Sign Out</button>
+        </form>
+      {% else %}
+        <a class="nav-link {% if cur == '/login' %}active{% endif %}" href="/login">Sign In</a>
+        <a class="nav-link {% if cur == '/register' %}active{% endif %}" href="/register">Register</a>
+        <a class="nav-link {% if cur == '/recover' %}active{% endif %}" href="/recover">Key Recovery</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer-note">
+    VaultGuard SDMS &bull; CS3002 Information Security Project (23F-3037 Ali Abbas) &bull;
+    AES-256-GCM + Ephemeral X25519 + Ed25519 + Argon2id + HMAC-SHA256 Audit Chain
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

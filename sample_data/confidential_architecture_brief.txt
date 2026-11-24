@@ -1,0 +1,12 @@
+CLASSIFICATION: SYNTHETIC TEST DOCUMENT (NO REAL SECRETS)
+PROJECT: VaultGuard Secure Document Management System (CS3002)
+
+1. Envelope Encryption Summary
+Each document is encrypted with a unique 256-bit Data Encryption Key (DEK)
+using AES-256-GCM with Additional Authenticated Data (AAD) binding the
+document UUID, version number, owner ID, and plaintext SHA-256 digest.
+
+2. Key Wrapping Policy
+DEKs are never stored in plaintext. Every authorized recipient receives a
+separate wrapped copy encrypted under an ephemeral X25519 ECDH + HKDF-SHA256
+derived key bound to (doc_id, version, recipient_user_id).

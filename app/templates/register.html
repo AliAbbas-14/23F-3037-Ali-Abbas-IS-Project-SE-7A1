@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Register - VaultGuard SDMS{% endblock %}
+{% block content %}
+<div class="auth-layout">
+  <section class="auth-showcase">
+    <div>
+      <span class="badge badge-owner">Cryptographic Onboarding</span>
+      <h1 style="font-size:1.85rem;margin:0.8rem 0 0.5rem;line-height:1.2;">
+        Personal X25519 + Ed25519 Identity Generation
+      </h1>
+      <p style="color:var(--muted);font-size:0.93rem;">
+        Registering provisions two asymmetric key pairs encrypted under your Argon2id Key Encryption Key plus a one-time offline recovery secret.
+      </p>
+      <div class="pillar-list">
+        <div class="pillar-item">
+          <span class="pillar-icon">K</span>
+          <div>
+            <strong>Argon2id Key Stretching</strong>
+            <div style="font-size:0.82rem;color:var(--muted);">Separate 16-byte KDF salt isolates key derivation from password verification.</div>
+          </div>
+        </div>
+        <div class="pillar-item">
+          <span class="pillar-icon">R</span>
+          <div>
+            <strong>Self-Service Offline Recovery</strong>
+            <div style="font-size:0.82rem;color:var(--muted);">Reset lost passwords without giving administrators plaintext document access.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:var(--muted);">
+      Public sign-up strictly enforces standard <code>user</code> role (zero mass-assignment elevation).
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom:0;">
+    <h2>Create Secure Account</h2>
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if recovery_code %}
+      <div class="alert alert-warning">
+        <strong>Account Created: {{ registered_username }}</strong><br>
+        Save this one-time <strong>Offline Recovery Code</strong> securely now. It will never be shown again:
+        <div class="copy-row" style="margin:0.75rem 0;padding:0.75rem;background:#070d18;border-radius:8px;border:1px solid var(--border);">
+          <span class="mono" style="color:#fde68a;font-size:0.95rem;">{{ recovery_code }}</span>
+          <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ recovery_code }}">Copy</button>
+        </div>
+        <a class="btn" style="width:100%;" href="/login">Proceed to Sign In</a>
+      </div>
+    {% else %}
+      <form method="post" action="/register">
+        <div class="form-group">
+          <label for="username">Username (3&ndash;32 chars)</label>
+          <input id="username" name="username" type="text" required placeholder="e.g., alice">
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input id="email" name="email" type="email" required placeholder="alice@example.edu">
+        </div>
+        <div class="form-group">
+          <label for="full_name">Full Name</label>
+          <input id="full_name" name="full_name" type="text" required placeholder="Alice Khan">
+        </div>
+        <div class="form-group">
+          <label for="password">Strong Password</label>
+          <div class="input-wrap">
+            <input id="password" name="password" type="password" required data-pw-strength="true" placeholder="10+ mixed characters">
+            <button type="button" class="pw-toggle" data-pw-toggle="password">Show</button>
+          </div>
+          <div class="pw-meter-bar"><div id="pw-meter-fill" class="pw-meter-fill"></div></div>
+          <div class="pw-checks">
+            <span id="chk-len" class="pw-chip">10+ chars</span>
+            <span id="chk-up" class="pw-chip">A-Z</span>
+            <span id="chk-low" class="pw-chip">a-z</span>
+            <span id="chk-num" class="pw-chip">0-9</span>
+            <span id="chk-sym" class="pw-chip">Symbol</span>
+          </div>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Generate Keys &amp; Register</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

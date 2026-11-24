@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Identity &amp; Keys - VaultGuard SDMS{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div>
+    <h1>Identity, Cryptographic Fingerprints &amp; Sessions</h1>
+    <p>Inspect your public asymmetric key fingerprints and manage active authenticated sessions.</p>
+  </div>
+  <a class="btn btn-secondary" href="/dashboard">&larr; Back to Vault</a>
+</div>
+
+{% if flash_msg %}
+  <div class="alert alert-success">{{ flash_msg }}</div>
+{% endif %}
+{% if flash_err %}
+  <div class="alert alert-danger">{{ flash_err }}</div>
+{% endif %}
+
+<div class="grid-equal">
+  <section class="card">
+    <div class="card-header">
+      <h2>Cryptographic Identity</h2>
+      <span class="badge {% if session.system_role == 'auditor_admin' %}badge-admin{% else %}badge-owner{% endif %}">
+        {{ session.system_role }}
+      </span>
+    </div>
+    <table>
+      <tbody>
+        <tr><th style="width:170px;">User ID</th><td class="mono">{{ session.user_id }}</td></tr>
+        <tr><th>Full Name / Email</th><td>{{ session.full_name }} &bull; {{ session.email }}</td></tr>
+        <tr>
+          <th>X25519 Fingerprint</th>
+          <td>
+            <div class="copy-row">
+              <span class="mono">{{ x25519_fp[:32] }}...</span>
+              <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ x25519_fp }}">Copy</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>Ed25519 Fingerprint</th>
+          <td>
+            <div class="copy-row">
+              <span class="mono">{{ ed25519_fp[:32] }}...</span>
+              <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ ed25519_fp }}">Copy</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:var(--muted);font-size:0.83rem;margin-bottom:0;margin-top:0.9rem;">
+      Your corresponding private keys reside encrypted in SQLite under Argon2id PD-KEK and are unlocked in RAM solely for this active session.
+    </p>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2>Active Authenticated Sessions ({{ active_sessions | length }})</h2>
+      <form method="post" action="/profile/revoke-other-sessions" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+        <button type="submit" class="btn btn-danger btn-sm">Sign Out Other Sessions</button>
+      </form>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Session Token Hash</th><th>IP / Client</th><th>Last Seen</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for s in active_sessions %}
+        <tr>
+          <td class="mono">{{ s.token_prefix }}...</td>
+          <td>{{ s.ip_address }}<br><span style="font-size:0.76rem;color:var(--muted);">{{ s.user_agent[:36] }}</span></td>
+          <td class="mono">{{ s.last_seen_at[:19] }}Z</td>
+          <td>
+            {% if s.is_current %}
+              <span class="badge badge-ok">Current</span>
+            {% else %}
+              <span class="badge badge-viewer">Active</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

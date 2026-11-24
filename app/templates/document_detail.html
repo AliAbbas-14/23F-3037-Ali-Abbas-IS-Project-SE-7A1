@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} - VaultGuard SDMS{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:1rem;">
+  <a href="/dashboard">&larr; Back to Encrypted Vault</a>
+</div>
+
+{% if flash_msg %}
+  <div class="alert alert-success">{{ flash_msg }}</div>
+{% endif %}
+{% if flash_err %}
+  <div class="alert alert-danger">{{ flash_err }}</div>
+{% endif %}
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+    <div>
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.45rem;">
+        <span class="badge badge-{{ my_role }}">Role: {{ my_role }}</span>
+        <span class="badge badge-ok">AES-256-GCM + Ed25519 Verified</span>
+        <span class="badge badge-viewer">Version {{ doc.current_version }}</span>
+      </div>
+      <h1 style="margin:0;font-size:1.55rem;">{{ doc.title }}</h1>
+      <p style="margin:0.25rem 0 0;color:var(--muted);font-size:0.86rem;">
+        Owner: <strong>{{ owner_username }}</strong> &bull; Manifest Signed by: <strong>{{ signer_username }}</strong> &bull; {{ doc.original_filename }} ({{ doc.size_bytes }} B)
+      </p>
+    </div>
+
+    <div style="display:flex;gap:0.55rem;flex-wrap:wrap;align-items:center;">
+      <form method="post" action="/documents/{{ doc.id }}/verify" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+        <button type="submit" class="btn btn-secondary">Verify Integrity Now</button>
+      </form>
+      <a class="btn btn-emerald" href="/documents/{{ doc.id }}/download">Download Decrypted File</a>
+      {% if my_role == 'owner' %}
+        <button type="button" id="delete-init-btn" class="btn btn-danger">Delete Document</button>
+        <div id="delete-confirm-wrap" class="hidden" style="display:flex;gap:0.4rem;align-items:center;">
+          <form method="post" action="/documents/{{ doc.id }}/delete" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+            <button type="submit" class="btn btn-danger btn-sm">Confirm Purge</button>
+          </form>
+          <button type="button" id="delete-cancel-btn" class="btn btn-secondary btn-sm">Cancel</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <table style="margin-top:1.15rem;">
+    <tbody>
+      <tr>
+        <th style="width:210px;">Document UUID</th>
+        <td>
+          <div class="copy-row">
+            <span class="mono">{{ doc.id }}</span>
+            <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ doc.id }}">Copy</button>
+          </div>
+        </td>
+      </tr>
+      <tr><th>Opaque Vault Blob</th><td class="mono">storage/vault_blobs/{{ doc.blob_id }}.enc</td></tr>
+      <tr>
+        <th>Plaintext SHA-256</th>
+        <td>
+          <div class="copy-row">
+            <span class="mono">{{ doc.plaintext_sha256 }}</span>
+            <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ doc.plaintext_sha256 }}">Copy</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>Ciphertext Blob SHA-256</th>
+        <td>
+          <div class="copy-row">
+            <span class="mono">{{ doc.ciphertext_sha256 }}</span>
+            <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ doc.ciphertext_sha256 }}">Copy</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-header">
+      <h2>Decrypted Document Preview</h2>
+      <span class="mono" style="color:var(--muted);">{{ doc.mime_type }}</span>
+    </div>
+    {% if is_text %}
+      <pre class="preview">{{ preview_text }}</pre>
+    {% else %}
+      <div class="alert alert-warning" style="margin-bottom:0;">
+        Binary payload ({{ doc.mime_type }}). Click <strong>Download Decrypted File</strong> above to retrieve verified bytes safely.
+      </div>
+    {% endif %}
+
+    {% if my_role in ['owner', 'editor'] %}
+      <hr style="border-color:var(--border);margin:1.5rem 0;">
+      <h3>Edit &amp; Re-Encrypt (Rotates DEK to v{{ doc.current_version + 1 }})</h3>
+      <form method="post" action="/documents/{{ doc.id }}/edit" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+        <div class="form-group">
+          <label for="new_title">Document Title</label>
+          <input id="new_title" name="new_title" type="text" value="{{ doc.title }}">
+        </div>
+        {% if is_text %}
+          <div class="form-group">
+            <label for="new_text">Updated Text Content</label>
+            <textarea id="new_text" name="new_text" class="code-area">{{ preview_text }}</textarea>
+          </div>
+        {% endif %}
+        <div class="form-group">
+          <label for="file">Or Replace via File Upload</label>
+          <input id="file" name="file" type="file">
+        </div>
+        <button type="submit" class="btn">Save Version v{{ doc.current_version + 1 }} &amp; Re-Sign</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <div>
+    <section class="card">
+      <h2>Controlled Sharing &amp; Revocation</h2>
+      {% if my_role == 'owner' %}
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:0;">
+          Sharing wraps the DEK under the recipient's X25519 public key. Revoking destroys their grant and rotates the DEK + blob.
+        </p>
+        <form method="post" action="/documents/{{ doc.id }}/share">
+          <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+          <div class="form-group">
+            <label for="target_username">Recipient Username</label>
+            <input id="target_username" name="target_username" type="text" list="user-list" placeholder="e.g., bob" required>
+            <datalist id="user-list">
+              {% for u in share_candidates %}
+                <option value="{{ u }}">
+              {% endfor %}
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label for="role">Permission Level</label>
+            <select id="role" name="role">
+              <option value="viewer">Viewer (Read / Download / Verify)</option>
+              <option value="editor">Editor (Read / Download / Edit)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expires_in_hours">Expiry (hours, optional)</label>
+            <input id="expires_in_hours" name="expires_in_hours" type="number" min="1" placeholder="Leave blank for non-expiring">
+            <div class="preset-row">
+              <button type="button" class="filter-pill" data-exp-hours="1">1h</button>
+              <button type="button" class="filter-pill" data-exp-hours="24">24h</button>
+              <button type="button" class="filter-pill" data-exp-hours="168">7d</button>
+              <button type="button" class="filter-pill" data-exp-hours="">No Expiry</button>
+            </div>
+          </div>
+          <button type="submit" class="btn" style="width:100%;">Grant Wrapped DEK Access</button>
+        </form>
+
+        <h3 style="margin-top:1.4rem;">Active Collaborators</h3>
+        {% if shares %}
+          <table>
+            <thead>
+              <tr><th>Collaborator</th><th>Role</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              {% for s in shares %}
+              <tr>
+                <td>
+                  <strong>{{ s.username }}</strong><br>
+                  <span style="color:var(--muted);font-size:0.76rem;">
+                    {% if s.expires_at %}Exp: {{ s.expires_at[:19] }}Z{% else %}No expiry{% endif %}
+                  </span>
+                </td>
+                <td><span class="badge badge-{{ s.role }}">{{ s.role }}</span></td>
+                <td>
+                  <form method="post" action="/documents/{{ doc.id }}/revoke" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                    <input type="hidden" name="target_user_id" value="{{ s.user_id }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p style="color:var(--muted);font-size:0.86rem;margin-bottom:0;">Not shared with any other users.</p>
+        {% endif %}
+      {% else %}
+        <div class="alert alert-warning" style="margin-bottom:0;">
+          You hold <strong>{{ my_role }}</strong> permissions. Only the document owner may manage sharing, revoke grants, or purge this document.
+        </div>
+      {% endif %}
+    </section>
+
+    {% if my_role == 'owner' and doc_history %}
+    <section class="card">
+      <h2>Document Security Activity</h2>
+      <table>
+        <thead>
+          <tr><th>Actor</th><th>Event</th><th>Outcome</th></tr>
+        </thead>
+        <tbody>
+          {% for h in doc_history[:8] %}
+          <tr>
+            <td>{{ h.actor_username }}<br><span class="mono" style="color:var(--muted);font-size:0.74rem;">{{ h.timestamp_utc[:19] }}Z</span></td>
+            <td class="mono">{{ h.action }}</td>
+            <td>
+              <span class="badge {% if h.outcome == 'SUCCESS' %}badge-ok{% elif h.outcome == 'DENIED' %}badge-denied{% else %}badge-alert{% endif %}">
+                {{ h.outcome }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Security Audit Console - VaultGuard SDMS{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div>
+    <h1>Security Audit &amp; Integrity Console</h1>
+    <p>Cryptographic log verification, suspicious behavior detection, and non-decrypting document integrity audits.</p>
+  </div>
+  <span class="badge badge-admin">Separation of Duties Active</span>
+</div>
+
+<div class="alert alert-warning">
+  <strong>Principle of Least Privilege:</strong>
+  As an <code>auditor_admin</code>, you investigate audit chains, login lockouts, and document ciphertext/Ed25519
+  integrity &mdash;
+  <strong>without automatic access to decrypt or read users' confidential documents.</strong>
+</div>
+
+{% if flash_msg %}
+<div class="alert alert-success">{{ flash_msg }}</div>
+{% endif %}
+{% if flash_err %}
+<div class="alert alert-danger">{{ flash_err }}</div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat-box">
+    <div class="stat-label">Audit Chain Status</div>
+    <div class="stat-value" style="color:{% if chain_status.valid %}var(--emerald){% else %}var(--danger){% endif %};">
+      {% if chain_status.valid %}VERIFIED INTACT{% else %}TAMPER DETECTED{% endif %}
+    </div>
+    <div class="stat-sub">SHA-256 chain + HMAC + Tail anchor</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Verified Audit Records</div>
+    <div class="stat-value">{{ chain_status.verified_records }} / {{ chain_status.total_records }}</div>
+    <div class="stat-sub">Contiguous sequence check</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Registered Identities</div>
+    <div class="stat-value">{{ users | length }}</div>
+    <div class="stat-sub">Active &amp; monitored accounts</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Suspicious Event Groups</div>
+    <div class="stat-value">{{ suspicious | length }}</div>
+    <div class="stat-sub">Denied &amp; Alert clusters</div>
+  </div>
+</div>
+
+{% if not chain_status.valid %}
+<div class="card" style="border-color:rgba(248, 113, 113, 0.65);background:rgba(36, 12, 18, 0.85);">
+  <h2 style="color:#fecaca;">Audit Log Integrity Violations</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Seq #</th>
+        <th>Violation Type</th>
+        <th>Forensic Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in chain_status.anomalies %}
+      <tr>
+        <td class="mono">{{ a.seq_no }}</td>
+        <td><span class="badge badge-alert">{{ a.type }}</span></td>
+        <td>{{ a.detail }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Suspicious Activity &amp; Threat Detection</h2>
+    {% if suspicious %}
+    <table>
+      <thead>
+        <tr>
+          <th>Actor</th>
+          <th>Action</th>
+          <th>Hits</th>
+          <th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in suspicious %}
+        <tr>
+          <td>{{ s.actor_username }}<br><span class="mono" style="color:var(--muted);">{{ s.ip_address }}</span></td>
+          <td class="mono">{{ s.action }}</td>
+          <td>{{ s.hit_count }}</td>
+          <td><span class="badge {% if s.severity == 'HIGH' %}badge-alert{% else %}badge-denied{% endif %}">{{
+              s.severity }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--muted);">No denied or alert security events recorded.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Document Metadata &amp; Non-Decrypting Integrity Check</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Title / Owner</th>
+          <th>Ver</th>
+          <th>Ciphertext Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in docs_meta %}
+        <tr>
+          <td>
+            <strong>{{ d.title }}</strong> ({{ d.owner_username }})<br>
+            <span class="mono" style="color:var(--muted);">{{ d.id[:12] }}... {% if d.is_deleted %}[DELETED]{% endif
+              %}</span>
+          </td>
+          <td>v{{ d.current_version }}</td>
+          <td>
+            {% if not d.is_deleted %}
+            <form method="post" action="/admin/documents/{{ d.id }}/verify" style="margin:0;">
+              <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+              <button type="submit" class="btn btn-secondary btn-sm">Verify Blob + Sig</button>
+            </form>
+            {% else %}
+            <span class="badge badge-viewer">Purged</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Cryptographic Hash-Chained Audit Trail (Latest 100 Events)</h2>
+  </div>
+  <div class="toolbar">
+    <input id="audit-search" class="search-box" type="text"
+      placeholder="Filter audit log by actor, action, or doc UUID...">
+    <div class="pill-group">
+      <button type="button" class="filter-pill active" data-filter-target="audit-table"
+        data-filter-val="all">All</button>
+      <button type="button" class="filter-pill" data-filter-target="audit-table"
+        data-filter-val="success">Success</button>
+      <button type="button" class="filter-pill" data-filter-target="audit-table"
+        data-filter-val="denied">Denied</button>
+      <button type="button" class="filter-pill" data-filter-target="audit-table" data-filter-val="alert">Alert</button>
+    </div>
+  </div>
+  <table id="audit-table">
+    <thead>
+      <tr>
+        <th>Seq</th>
+        <th>UTC Timestamp</th>
+        <th>Actor</th>
+        <th>Action</th>
+        <th>Outcome</th>
+        <th>Target Doc</th>
+        <th>Entry Hash (SHA-256)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in audit_rows %}
+      <tr data-outcome="{{ r.outcome }}">
+        <td class="mono">{{ r.seq_no }}</td>
+        <td class="mono">{{ r.timestamp_utc[:19] }}Z</td>
+        <td>{{ r.actor_username }}</td>
+        <td class="mono">{{ r.action }}</td>
+        <td>
+          <span
+            class="badge {% if r.outcome == 'SUCCESS' %}badge-ok{% elif r.outcome == 'DENIED' %}badge-denied{% else %}badge-alert{% endif %}">
+            {{ r.outcome }}
+          </span>
+        </td>
+        <td class="mono">{% if r.target_doc_id %}{{ r.target_doc_id[:8] }}...{% else %}-{% endif %}</td>
+        <td class="mono">{{ r.entry_hash[:18] }}...</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

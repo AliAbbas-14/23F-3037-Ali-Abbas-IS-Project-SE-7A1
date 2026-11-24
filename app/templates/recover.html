@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Key Recovery - VaultGuard SDMS{% endblock %}
+{% block content %}
+<div style="max-width:540px;margin:2.5rem auto;">
+  <div class="card">
+    <span class="badge badge-editor">Key-Preserving Reset</span>
+    <h1 style="margin:0.65rem 0 0.35rem;font-size:1.5rem;">Self-Service Vault Recovery</h1>
+    <p style="color:var(--muted);font-size:0.9rem;">
+      Unwraps your X25519 &amp; Ed25519 private keys using your offline recovery code, re-wraps them under your new password, and invalidates all prior sessions.
+    </p>
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    {% if new_recovery_code %}
+      <div class="alert alert-success">
+        <strong>Password Reset &amp; Keys Re-Wrapped!</strong><br>
+        Save your rotated one-time recovery code:
+        <div class="copy-row" style="margin:0.75rem 0;padding:0.75rem;background:#070d18;border-radius:8px;border:1px solid var(--border);">
+          <span class="mono" style="color:#86efac;">{{ new_recovery_code }}</span>
+          <button type="button" class="btn btn-secondary btn-xs" data-copy-text="{{ new_recovery_code }}">Copy</button>
+        </div>
+        <a class="btn" style="width:100%;" href="/login">Sign In with New Password</a>
+      </div>
+    {% else %}
+      <form method="post" action="/recover">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" required>
+        </div>
+        <div class="form-group">
+          <label for="recovery_code">Offline Recovery Code</label>
+          <input id="recovery_code" name="recovery_code" type="text" placeholder="XXXX-XXXX-XXXX-..." required>
+        </div>
+        <div class="form-group">
+          <label for="new_password">New Strong Password</label>
+          <div class="input-wrap">
+            <input id="new_password" name="new_password" type="password" required data-pw-strength="true">
+            <button type="button" class="pw-toggle" data-pw-toggle="new_password">Show</button>
+          </div>
+          <div class="pw-meter-bar"><div id="pw-meter-fill" class="pw-meter-fill"></div></div>
+          <div class="pw-checks">
+            <span id="chk-len" class="pw-chip">10+ chars</span>
+            <span id="chk-up" class="pw-chip">A-Z</span>
+            <span id="chk-low" class="pw-chip">a-z</span>
+            <span id="chk-num" class="pw-chip">0-9</span>
+            <span id="chk-sym" class="pw-chip">Symbol</span>
+          </div>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Recover Vault &amp; Reset Password</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
