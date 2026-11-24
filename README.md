@@ -4,6 +4,22 @@
 **Campus:** FAST-NUCES, Chiniot – Faisalabad Campus  
 **Author:** Ali Abbas (`23F-3037`, Section `SE-7A1`)  
 
+---
+
+## 🌐 Live Deployed Application
+
+- **Live URL:** [https://dad9278cb54cb6.app.lhr.life](https://dad9278cb54cb6.app.lhr.life)
+
+### 🔑 Demo Accounts & Passwords:
+| Role | Username | Password | Notes |
+| :--- | :--- | :--- | :--- |
+| **Owner / Editor** | `alice` | `AliceTest#2026!` | Can upload, edit, share, and rotate keys |
+| **Viewer** | `bob` | `BobSecure#2026!` | Read-only view on shared documents |
+| **Unauthorized User** | `charlie` | `CharlieKey#2026!` | Unshared user (triggers HTTP 403 IDOR test) |
+| **Security Administrator** | `sec_admin` | `AdminAudit#2026!` | Access to Audit Console & Tamper Detection |
+
+---
+
 VaultGuard SDMS is a security-first prototype document management system engineered to protect document confidentiality, integrity, access boundaries, sharing lifecycles, and audit accountability using established cryptographic libraries (`PyCA cryptography` and `argon2-cffi`).
 
 ## Core Security Architecture
@@ -28,16 +44,12 @@ VaultGuard SDMS is a security-first prototype document management system enginee
 │   ├── static/styles.css  # Dark-slate console stylesheet
 │   └── templates/         # Jinja2 auto-escaped UI templates
 ├── docs/
-│   ├── diagrams/          # High-DPI SVG-rendered architecture & security diagrams
+│   ├── diagrams/          # High-DPI architecture & security diagrams
 │   └── storage_exposure_evidence.txt
 ├── sample_data/           # Synthetic non-secret test documents
 ├── screenshots/           # Live Playwright screenshots of UI & adversarial scenarios
 ├── scripts/
-│   ├── seed_demo.py       # Seeds controlled non-secret demo accounts & docs
-│   ├── capture_demo_screenshots.py
-│   ├── generate_diagrams.py
-│   ├── build_report.py
-│   └── build_presentation.py
+│   └── seed_demo.py       # Seeds controlled non-secret demo accounts & docs
 ├── tests/
 │   └── test_security_scenarios.py
 ├── run_server.py
